@@ -24,75 +24,172 @@ evals<-read.csv("data/evals.csv", row.names=1)
 1.  Visualize the distribution of `score` in the dataframe `evals`.
 
 ```{r viz-score}
-# add code here
+evals %>%
+  ggplot(
+    mapping = aes(
+      x = score,
+    )
+  ) + 
+  geom_density() +
+  labs(
+    title = "Distribution of Score",
+    x = "Score",
+    y = "Density"
+  )
+
+evals %>%
+  summarise(
+    mean_score = mean(score, na.rm = TRUE) ,
+    median_score = median(score, na.rm = TRUE),
+    min_score = min(score, na.rm = TRUE), 
+    max_score = max(score, na.rm = TRUE)
+  )
+
+
+
+
 ```
 
-*Add your other details and narratives here.*
+This distribution is clearly left skewed with students, on average, rating courses highly. The mean score was 4.18 and the median score was 4.3, this suggests that students rate their courses highly. This is expected because, students are more likely to choose a degree/optional course which interests them and they would therefore be expected to rate the courses highly.  
 
 2.  Visualize and describe the relationship between `score` and `bty_avg` using `geom_point()` to represent the data. 
 
 ```{r scatterplot}
-# add code here
+
+evals %>%
+  ggplot(
+    mapping = aes(
+      x = score,
+      y = bty_avg
+    )
+  ) +
+  geom_point() +
+  labs(
+    title = "Score against Beauty Average",
+    subtitle = "using geom_point()",
+    x = "Score",
+    y = "Beauty Average"
+  )
+
+
+evals %>%
+  ggplot(
+    mapping = aes(
+      x = score,
+      y = bty_avg
+    )
+  ) +
+  geom_jitter() +
+  labs(
+    title = "Score against Beauty Average",
+    subtitle = "using geom_jitter()",
+    x = "Score",
+    y = "Beauty Average"
+  )
+
+
+
 ```
 
-*Add your narrative and other details here.*
+The "jitter" allows for some random motion in the points, this adds some noise, this is to help with visualizations where there may be data plotted on top of one another or it is 'forced' into looking discrete due to the number of decimal points. The graph using geom_point may have been misleading because it didnt appear to show all data points. 
+
 
 # Exercise 2: Simple Linear regression with a numerical predictor
 
 1. Fit a linear model called `score_bty_fit` to predict average professor evaluation `score` from average beauty rating (`bty_avg`). Print the regression output using `tidy()`.
 
-```{r fit-score_bty_fit, eval = FALSE}
+```{r fit-score_bty_fit}
 # remove eval = FALSE from the code chunk options after filling in the blanks
 score_bty_fit <- linear_reg() %>%
   set_engine("lm") %>%
-  fit(___ ~ ___, data = ___)
+  fit(score ~ bty_avg, data = evals)
+
 ```
 
 ```{r tidy-score_bty_fit, eval = FALSE}
 # remove eval = FALSE from the code chunk options after filling in the blanks
-tidy(___)
+tidy(score_bty_fit)
 ```
 
-*Add your linear model here. Don't worry too much about notation, you can use things like score-hat.*
+score-hat = 3.88033795 - 0.06663704 * bty_avg
+
 
 2. Plot the data again using `geom_jitter()`, and add the regression line.
 
 ```{r viz-score_bty_fit,eval=FALSE}
-# add your plot here. Hint, you can add the regression line using geom_smooth()
+
+evals %>%
+  ggplot(
+    mapping = aes(
+      x = bty_avg,
+      y = score
+    )
+  ) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_jitter() +
+  labs(
+    title = "Beauty Average against Score",
+    subtitle = "using geom_jitter()",
+    x = "Beauty Average",
+    y = "Score"
+  )
+
+
+
+
 ```
 
 3. Interpret the slope of the linear model in context of the data.
 
-*Add your interpretation here*
+For every increase of 1 to beauty average, the score of the class is expected to be 0.06663704 points greater. 
 
 4. Interpret the intercept of the linear model in context of the data. Comment on whether or not the intercept makes sense in this context.
 
-*Add your interpretation here*
+Classes of professors with a beauty average of 0 are expected to have a score of 3.88033795. This makes sense as you would expect that an unattractive professor could still teach an enjoyable course. 
+
 
 5. Determine the $R^2$ of the model and interpret it in the context of the data.
 
-```{r R2, eval = FALSE}
-# remove eval = FALSE from the code chunk options after filling in the blanks
-glance(___)$___
+```{r R2}
+
+glance(score_bty_fit)$r.squared
+
 ```
 
-*Add your interpretation here*
+This low $R^2$ means that very little of the variability in the response variable (score), is explained by the regression model. This means that the regression model is not very good.
+
 
 6. Make a plot of residuals vs. predicted values for the model above.
 
-```{r viz-score_bty_fit-diagnostic, eval = FALSE}
-# remove eval = FALSE from the code chunk options after filling in the blanks
+```{r viz-score_bty_fit-diagnostic}
+
 score_bty_aug <- augment(score_bty_fit$fit)
 
-ggplot(___) + ...
+
+ggplot(score_bty_aug, mapping = aes(x = .fitted, y = .resid)) +
+  geom_jitter(alpha = 0.5) +
+  geom_hline(yintercept = 0, color = "gray", lty = "dashed") +
+  labs(x = "Predicted Score", y = "Residuals")
+  
+  
 ```
+
+This linear model is appropriate for modeling the relationship because there is no obvious pattern in the graph.
+
 
 # Exercise 3: Simple Linear regression with a categorical predictor
 
 0. Look at the variable rank, and determine the frequency of each category level.
 
 ```{r}
-# ... 
+
+evals %>%
+  group_by(rank) %>%
+  summarise(
+    count = n()
+  )
+
+
 ```
 
 1. Fit a new linear model called `score_rank_fit` to predict average professor evaluation `score` based on `rank` of the professor.
@@ -100,18 +197,41 @@ ggplot(___) + ...
 ```{r fit-score_rank_fit}
 # fit model
 
+score_rank_fit <- linear_reg() %>%
+  set_engine("lm") %>%
+  fit(score ~ factor(rank), data = evals)
+
+
 # tidy model output
+
+tidy(score_rank_fit)
+
 ```
 
-*Add your narrative here.*
+
+Teaching professors are expected to have a score of 4.2843137 points, 
+Professors on the tenure track are expected to have a score 0.1296841 points lower than teaching professors, 
+Tenured professors are expected to have a score 0.1451833 points lower than teaching professors. 
+
 
 2. Fit a new linear model called `score_gender_fit` to predict average professor evaluation `score` based on `gender` of the professor. 
 
 ```{r fit-score_gender_fit}
 # fit model
 
+score_gender_fit <- linear_reg() %>%
+  set_engine("lm") %>%
+  fit(score ~ factor(gender), data = evals)
+
 # tidy model output
+
+tidy(score_gender_fit)
+
 ```
+
+Female professors will have an expected score of 4.0928205 points,
+Male professors will have an expected score of 0.1415078 points greater than female professors.
+
 
 ```{r score_gender_intercept, eval=FALSE}
 # remove eval = FALSE from the code chunk options
